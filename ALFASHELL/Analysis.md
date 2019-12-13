@@ -50,3 +50,14 @@ to execute the next bit of code once they had navigated to the correct path/dire
 \\cmd.exe
 ```
 And thus a command window is open, allowing for the execution of any command
+
+Aditionally, the 'hidden' keyword in the next portion of the code means that the powershell windo would be hidden from the user,
+allowing the attacker to execute commands without the target noticing anything suspicious (especially as the use of the 'enc'
+flag is employed, allowing for all potentially malicious looking strings to be encoded)
+(https://stackoverflow.com/questions/1802127/how-to-run-a-powershell-script-without-displaying-a-window
+https://www.danielbohannon.com/blog-1/2017/3/12/powershell-execution-argument-obfuscation-how-it-can-make-detection-easier)
+```
+powershell -window hidden -enc
+```
+
+And in a few lines of code, APT33 now has backdoor access to a targets computer.

@@ -13,7 +13,7 @@ Contains (nearly complete) source code for Stuxnet as pulled from Michael R. Tor
         2.) http://www.codeproject.com/Articles/246545/Stuxnet-Malware-Analysis-Paper
         3.) https://www.esetnod32.ru/company/viruslab/analytics/doc/Stuxnet_Under_the_Microscope.pdf
         
-All source code for Stuxnet included in the 'Stuxnet' folder, and the analysis of the source code is in the 'Analysis' file
+All source code for Stuxnet included in the Dropper and Rootkit folders, and the analysis of the source code is in the 'Analysis' file in the Stuxnet folder, which contains code snippets
 
 
 

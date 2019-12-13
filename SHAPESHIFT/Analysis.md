@@ -478,3 +478,22 @@ EXECUTE_WOW64_FILE_OPERATION
 if(hFileHandle == INVALID_HANDLE_VALUE && nLastError == ERROR_FILE_NOT_FOUND)
 	break;
 ```
+
+## Handler.cpp
+Responsible for handling all of communication with the SVC. Functions include
+```
+VOID ReportSvcStatus(DWORD dwCurrentState, DWORD dwWin32ExitCode, DWORD dwWaitHint);
+
+VOID WINAPI SvcCtrlHandler(DWORD dwCtrl);
+
+VOID WINAPI SvcMain(DWORD dwArgc, LPWSTR lpszArgv);
+
+VOID SvcSleep(DWORD dwSeconds);
+```
+Which contains nothing exciting or fun.
+
+## Encryption.cpp
+Responsible for the decoding of files. Includes the function
+```
+bool WriteEncodedResource(LPCWSTR szFileName, HMODULE hModule, LPCWSTR lpName, LPCWSTR lpType, char *vKey, UINT32 nKeyLength);
+```

@@ -20,7 +20,7 @@ All source code for Stuxnet included in the Dropper and Rootkit folders, and the
 
 DROPSHOT
 ========
-DROPSHOT is the dropper used by APT33 to install both SHAPESHIFT (wiper malware) and TURNEDUP (backdoor). APT33 is the only group known to use DROPSHOT. The code included is a proof of concept of how DROPSHOT was written, using references:
+DROPSHOT is the two-stage dropper used by APT33 to install both SHAPESHIFT (wiper malware) and TURNEDUP (backdoor). APT33 is the only group known to use DROPSHOT. The code included is a proof of concept of how DROPSHOT was written, using references:
 
 
 

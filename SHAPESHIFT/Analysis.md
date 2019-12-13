@@ -79,6 +79,30 @@ M_STRING02(lpszFileName,
 	return 0;
 ```
 
+
+## Entry.cpp
+Contains the function
+```
+bool StartServiceProcess(WCHAR *svc_name, const WCHAR *svc_path, DWORD *service_id);
+```
+The purpose of the module is to start the SVC and create the service. The path to the SVC is first copied, and meemory is allocated for 
+the startup and process information. The process is created, memory deallocated, and handles closed. 
+```
+svc_path_cpy = (WCHAR *)VirtualAlloc(NULL, 2 * strlenW(svc_path) + 2, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+
+...
+
+VirtualFree(svc_path_cpy, 0, MEM_RELEASE);
+
+...
+
+CloseHandle(ProcessInformation.hThread);
+CloseHandle(ProcessInformation.hProcess);
+CloseHandle(StartupInfo.hStdError);
+CloseHandle(StartupInfo.hStdInput);
+CloseHandle(StartupInfo.hStdOutput);
+```
+
 ## 64bit.cpp & 32bit.cpp
 These two files allow for the retrieval of information specific to both 32 bit and 64 bit machines, thus allowing for a greater scope of attack. The 32bit.cpp file is much more involved than the 64bit file, with the functions
 ```

